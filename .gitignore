@@ -218,3 +218,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+.vscode/
+# WorthIt? local database
+worthit.db
+worthit.db-journal
+worthit.db-wal
+worthit.db-shm

@@ -1,0 +1,8 @@
+
+name,price_inr,mic_quality,comfort,bass,battery_hours,description,pros,cons
+Demo Earbuds A,799,4,4,3,20,Illustrative budget option,Low sample price; balanced sample features,Sample data only
+Demo Earbuds B,1199,5,4,3,30,Illustrative class-focused option,Stronger sample microphone score; longer sample battery,Sample data only
+Demo Earbuds C,1499,4,5,5,24,Illustrative entertainment-focused option,Higher sample comfort and bass scores,Sample data only
+Demo Earbuds D,999,3,5,3,25,Illustrative comfort-focused option,High sample comfort score; moderate sample price,Sample data only
+Demo Earbuds E,599,3,3,3,16,Illustrative entry-level option,Lowest sample price,Lower sample feature scores
+Demo Earbuds F,1299,4,3,4,35,Illustrative battery-focused option,Longest sample battery life,Lower sample comfort score

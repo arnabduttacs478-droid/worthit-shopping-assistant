@@ -1,0 +1,7 @@
+
+name,price_inr,processor_score,ram_gb,battery_hours,weight_kg,description
+Demo Laptop A,39999,3,8,6,1.8,Illustrative budget laptop
+Demo Laptop B,54999,4,16,8,1.6,Illustrative multitasking laptop
+Demo Laptop C,69999,5,16,10,1.5,Illustrative performance-focused laptop
+Demo Laptop D,45999,3,16,7,1.7,Illustrative memory-focused laptop
+Demo Laptop E,79999,5,32,9,1.9,Illustrative high-memory laptop
