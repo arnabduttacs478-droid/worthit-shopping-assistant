@@ -285,19 +285,8 @@ The general approach is:
 4. Calculate a weighted score using the available weighted features.
 5. Rank products using the resulting scores.
 
-A simplified representation is:
-
-\[
-S(p)=\frac{\sum_{i \in A_p} w_i s_{p,i}}
-{\sum_{i \in A_p} w_i}
-\]
-
-Where:
-
-- \(S(p)\) is the calculated score for product \(p\).
-- \(w_i\) is the user's priority weight for feature \(i\).
-- \(s_{p,i}\) is the normalized score for that feature.
-- \(A_p\) is the set of features with usable values for that product.
+Match Score = Σ (Feature Weight × Normalized Feature Score)
+              / Σ (Available Feature Weights)
 
 This approach helps prevent a product from being penalized simply because a feature is missing, although missing information can still reduce the reliability of the comparison.
 
