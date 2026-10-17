@@ -92,6 +92,45 @@ class TestCalculateScores(unittest.TestCase):
 
         self.assertTrue(result["match_score"].isna().all())
 
+    def test_missing_feature_is_excluded_from_weighted_score(self):
+        data = pd.DataFrame({
+            "performance": [10, 30, 20],
+            "battery": [None, 10, 30],
+        })
+
+        features = {
+            "Performance": {
+                "column": "performance",
+                "type": "quantity",
+            },
+            "Battery": {
+                "column": "battery",
+                "type": "quantity",
+            },
+        }
+
+        weights = {
+            "performance": 3,
+            "battery": 3,
+        }
+
+        result = calculate_scores(data, features, weights)
+
+        # Row 0 has only performance data: score = 1.
+        self.assertAlmostEqual(
+            result.loc[0, "match_score"], 1.0
+        )
+
+        # Row 1 has performance score 5 and battery score 1.
+        self.assertAlmostEqual(
+            result.loc[1, "match_score"], 3.0
+        )
+
+        # Row 2 has performance score 3 and battery score 5.
+        self.assertAlmostEqual(
+            result.loc[2, "match_score"], 4.0
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
