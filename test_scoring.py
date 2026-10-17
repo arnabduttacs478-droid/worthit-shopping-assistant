@@ -8,6 +8,12 @@ from app_logic import normalize_feature, calculate_scores
 
 class TestNormalizeFeature(unittest.TestCase):
 
+    def test_unsupported_feature_type_raises_error(self):
+        values = pd.Series([10, 20, 30])
+
+        with self.assertRaises(ValueError):
+            normalize_feature(values, "unknown_type")
+
     def test_higher_values_get_higher_scores(self):
         values = pd.Series([10, 20, 30])
 

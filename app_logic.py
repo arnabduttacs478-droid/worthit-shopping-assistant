@@ -2,8 +2,22 @@
 import pandas as pd
 
 
+SUPPORTED_FEATURE_TYPES = {
+    "rating",
+    "quantity",
+    "lower_better",
+}
+
+
 def normalize_feature(series, feature_type):
     """Normalize feature values to a 1–5 scale."""
+
+    if feature_type not in SUPPORTED_FEATURE_TYPES:
+        raise ValueError(
+            f"Unsupported feature type: {feature_type!r}. "
+            f"Expected one of {sorted(SUPPORTED_FEATURE_TYPES)}."
+        )
+
     values = pd.to_numeric(series, errors="coerce")
     minimum = values.min()
     maximum = values.max()
@@ -25,6 +39,7 @@ def normalize_feature(series, feature_type):
 
 def calculate_scores(products, features, weights):
     """Calculate weighted match scores using available features."""
+
     result = products.copy()
 
     weighted_total = pd.Series(0.0, index=result.index)
@@ -39,11 +54,15 @@ def calculate_scores(products, features, weights):
             continue
 
         normalized = normalize_feature(
-            result[column], feature_type
+            result[column],
+            feature_type,
         )
 
         valid = normalized.notna()
-        weighted_total.loc[valid] += normalized.loc[valid] * weight
+
+        weighted_total.loc[valid] += (
+            normalized.loc[valid] * weight
+        )
         available_weight.loc[valid] += weight
 
     result["match_score"] = (
