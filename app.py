@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import database
+from app_logic import normalize_feature, calculate_scores
 
 # ==================================================
 # 1. PAGE CONFIGURATION
@@ -108,45 +109,10 @@ CATEGORIES = {
     },
 }
 
+
 # ==================================================
-# 3. HELPER FUNCTIONS
+# 3. DISPLAY HELPER
 # ==================================================
-
-def normalize_feature(series, feature_type):
-    """Normalize a feature to a 1–5 relative scale.
-
-    Missing values remain missing. When all valid values are
-    identical, assign a neutral score of 3.
-    """
-    values = pd.to_numeric(series, errors="coerce")
-    valid = values.dropna()
-
-    if valid.empty:
-        return pd.Series(float("nan"), index=series.index)
-
-    minimum = valid.min()
-    maximum = valid.max()
-
-    if maximum == minimum:
-        normalized = pd.Series(
-            3.0,
-            index=series.index,
-            dtype=float,
-        )
-        normalized.loc[values.isna()] = float("nan")
-        return normalized
-
-    if feature_type == "lower_better":
-        normalized = (
-            1 + 4 * (maximum - values) / (maximum - minimum)
-        )
-    else:
-        normalized = (
-            1 + 4 * (values - minimum) / (maximum - minimum)
-        )
-
-    return normalized.clip(1, 5)
-
 
 def format_feature_value(value, feature_config):
     """Format a feature value for display."""
@@ -157,39 +123,6 @@ def format_feature_value(value, feature_config):
         return f"{value:g}/5"
 
     return f"{value:g}{feature_config['unit']}"
-
-
-def calculate_scores(data, feature_configurations, weights):
-    """Calculate weighted scores using available feature values."""
-    scored = data.copy()
-
-    weighted_total = pd.Series(0.0, index=scored.index)
-    available_weight = pd.Series(0.0, index=scored.index)
-
-    for feature_config in feature_configurations.values():
-        column = feature_config["column"]
-        weight = weights.get(column, 0)
-
-        if weight <= 0:
-            continue
-
-        normalized = normalize_feature(
-            scored[column],
-            feature_config["type"],
-        )
-
-        available = normalized.notna()
-
-        weighted_total += normalized.fillna(0) * weight
-        available_weight += available.astype(float) * weight
-
-    scored["match_score"] = (
-        weighted_total
-        .div(available_weight.where(available_weight > 0))
-        .clip(1, 5)
-    )
-
-    return scored
 
 
 # ==================================================
@@ -288,6 +221,7 @@ if products.empty:
 # Stable row indices are important for product-specific analysis.
 products = products.reset_index(drop=True)
 
+
 # ==================================================
 # 5. PERSONAL PRIORITIES
 # ==================================================
@@ -322,6 +256,7 @@ scored_products = calculate_scores(
     feature_configurations,
     weights,
 )
+
 
 # ==================================================
 # 6. BUDGET AND SEARCH FILTERS
@@ -380,6 +315,7 @@ if unscored_count:
 
 filtered = filtered[filtered["match_score"].notna()].copy()
 
+
 # ==================================================
 # 7. HANDLE EMPTY RESULTS
 # ==================================================
@@ -435,6 +371,7 @@ filtered = filtered.sort_values(
     ascending=[False, True],
 ).reset_index(drop=True)
 
+
 # ==================================================
 # 8. RANKED RESULTS
 # ==================================================
@@ -480,6 +417,7 @@ st.dataframe(
     hide_index=True,
 )
 
+
 # ==================================================
 # 9. BEST MATCH
 # ==================================================
@@ -513,6 +451,7 @@ else:
         "You gave similar importance to the available features, "
         "so the recommendation balances them."
     )
+
 
 # ==================================================
 # 10. PRICE AND VALUE ANALYSIS
@@ -576,6 +515,7 @@ else:
         f"The top match scores {difference:.2f} points higher "
         "than the lowest-priced option."
     )
+
 
 # ==================================================
 # 11. PRODUCT FIT ANALYSIS
@@ -677,6 +617,7 @@ st.caption(
     "the category's illustrative sample data."
 )
 
+
 # ==================================================
 # 12. PERSONALIZED BUYING VERDICT
 # ==================================================
@@ -712,6 +653,7 @@ st.write(f"**Price:** ₹{selected_price:,.0f}")
 st.write(f"**Match score:** {selected_score:.2f}/5")
 st.write(f"**Budget remaining:** ₹{budget - selected_price:,.0f}")
 
+
 # ==================================================
 # 13. PRODUCT COMPARISON
 # ==================================================
@@ -744,6 +686,7 @@ if len(selected_products) >= 2:
     )
 else:
     st.info("Select at least two products to compare.")
+
 
 # ==================================================
 # 14. DATABASE-BACKED SHORTLIST
@@ -843,6 +786,7 @@ else:
             st.rerun()
         except Exception as error:
             st.error(f"Could not clear the shortlist: {error}")
+
 
 # ==================================================
 # 15. FOOTER
