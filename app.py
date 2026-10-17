@@ -116,6 +116,7 @@ CATEGORIES = {
 
 def format_feature_value(value, feature_config):
     """Format a feature value for display."""
+
     if pd.isna(value):
         return "Not available"
 
@@ -141,23 +142,27 @@ feature_configurations = config["features"]
 
 try:
     products = pd.read_csv(config["file"])
+
 except FileNotFoundError:
     st.error(
         f"Could not find `{config['file']}`. "
         "Check that the CSV exists inside your data folder."
     )
     st.stop()
+
 except pd.errors.ParserError:
     st.error(
         f"The file `{config['file']}` could not be read. "
         "Check its CSV formatting."
     )
     st.stop()
+
 except UnicodeDecodeError:
     st.error(
         f"The file `{config['file']}` has an unsupported text encoding."
     )
     st.stop()
+
 
 required_columns = [
     "name",
@@ -185,8 +190,12 @@ if products.empty:
     st.error("There are no products in this category yet.")
     st.stop()
 
+
 products["name"] = (
-    products["name"].fillna("").astype(str).str.strip()
+    products["name"]
+    .fillna("")
+    .astype(str)
+    .str.strip()
 )
 
 products["price_inr"] = pd.to_numeric(
@@ -196,16 +205,19 @@ products["price_inr"] = pd.to_numeric(
 
 for feature_config in feature_configurations.values():
     column = feature_config["column"]
+
     products[column] = pd.to_numeric(
         products[column],
         errors="coerce",
     )
+
 
 products = products[
     (products["name"] != "")
     & products["price_inr"].notna()
     & (products["price_inr"] >= 0)
 ].copy()
+
 
 if products["name"].duplicated().any():
     st.error(
@@ -218,7 +230,7 @@ if products.empty:
     st.error("No valid product records were found in this dataset.")
     st.stop()
 
-# Stable row indices are important for product-specific analysis.
+# Stable indices allow product-specific analysis after filtering.
 products = products.reset_index(drop=True)
 
 
@@ -234,6 +246,7 @@ st.write(
 )
 
 weights = {}
+
 left, right = st.columns(2)
 
 for index, (feature_name, feature_config) in enumerate(
@@ -250,6 +263,7 @@ for index, (feature_name, feature_config) in enumerate(
             value=3,
             key=f"priority_{category}_{column}",
         )
+
 
 scored_products = calculate_scores(
     products,
@@ -273,8 +287,16 @@ slider_max = ((max_price + 999) // 1000) * 1000
 if slider_min == slider_max:
     slider_max = slider_min + 1000
 
-default_budget = min(max(1500, slider_min), slider_max)
-budget_step = 500 if slider_max - slider_min >= 500 else 100
+default_budget = min(
+    max(1500, slider_min),
+    slider_max,
+)
+
+budget_step = (
+    500
+    if slider_max - slider_min >= 500
+    else 100
+)
 
 budget = st.slider(
     "Maximum budget (₹)",
@@ -291,6 +313,7 @@ search_query = st.text_input(
     key=f"search_{category}",
 )
 
+
 filtered = scored_products[
     scored_products["price_inr"] <= budget
 ].copy()
@@ -305,7 +328,10 @@ if search_query.strip():
         )
     ].copy()
 
-unscored_count = int(filtered["match_score"].isna().sum())
+
+unscored_count = int(
+    filtered["match_score"].isna().sum()
+)
 
 if unscored_count:
     st.warning(
@@ -313,7 +339,9 @@ if unscored_count:
         "and cannot be ranked. Check their dataset records."
     )
 
-filtered = filtered[filtered["match_score"].notna()].copy()
+filtered = filtered[
+    filtered["match_score"].notna()
+].copy()
 
 
 # ==================================================
@@ -331,6 +359,7 @@ if filtered.empty:
 
     try:
         saved_names = database.get_shortlist(category)
+
     except Exception as error:
         st.error(f"Could not load your saved shortlist: {error}")
         st.stop()
@@ -340,10 +369,15 @@ if filtered.empty:
     ].copy()
 
     if saved_products.empty:
-        st.info(f"You have not saved any {category.lower()} yet.")
+        st.info(
+            f"You have not saved any {category.lower()} yet."
+        )
+
     else:
         st.dataframe(
-            saved_products[["name", "price_inr"]].rename(
+            saved_products[
+                ["name", "price_inr"]
+            ].rename(
                 columns={
                     "name": "Product",
                     "price_inr": "Price (₹)",
@@ -361,10 +395,14 @@ if filtered.empty:
                 database.clear_shortlist(category)
                 st.success(f"{category} shortlist cleared.")
                 st.rerun()
+
             except Exception as error:
-                st.error(f"Could not clear the shortlist: {error}")
+                st.error(
+                    f"Could not clear the shortlist: {error}"
+                )
 
     st.stop()
+
 
 filtered = filtered.sort_values(
     by=["match_score", "price_inr"],
@@ -402,6 +440,7 @@ rename_columns = {
 
 for feature_name, feature_config in feature_configurations.items():
     rename_columns[feature_config["column"]] = feature_name
+
 
 results = filtered[display_columns].rename(
     columns=rename_columns
@@ -446,6 +485,7 @@ if priority_features:
             f"- **{feature_name}:** "
             f"{format_feature_value(value, feature_config)}."
         )
+
 else:
     st.write(
         "You gave similar importance to the available features, "
@@ -476,7 +516,9 @@ st.scatter_chart(
     y="Match Score (/5)",
 )
 
-st.caption("A higher price does not guarantee a better match.")
+st.caption(
+    "A higher price does not guarantee a better match."
+)
 
 st.subheader("Budget Trade-offs")
 
@@ -495,7 +537,9 @@ with col1:
         f"₹{lowest_price['price_inr']:,.0f}",
     )
     st.write(f"**{lowest_price['name']}**")
-    st.write(f"Match score: {lowest_price['match_score']:.2f}/5")
+    st.write(
+        f"Match score: {lowest_price['match_score']:.2f}/5"
+    )
 
 with col2:
     st.metric(
@@ -503,14 +547,21 @@ with col2:
         f"₹{top_match['price_inr']:,.0f}",
     )
     st.write(f"**{top_match['name']}**")
-    st.write(f"Match score: {top_match['match_score']:.2f}/5")
+    st.write(
+        f"Match score: {top_match['match_score']:.2f}/5"
+    )
 
 if lowest_price["name"] == top_match["name"]:
     st.info(
         "The lowest-priced option is also the top personalized match."
     )
+
 else:
-    difference = top_match["match_score"] - lowest_price["match_score"]
+    difference = (
+        top_match["match_score"]
+        - lowest_price["match_score"]
+    )
+
     st.write(
         f"The top match scores {difference:.2f} points higher "
         "than the lowest-priced option."
@@ -520,7 +571,6 @@ else:
 # ==================================================
 # 11. PRODUCT FIT ANALYSIS
 # ==================================================
-
 
 st.header("6. Product Fit Analysis")
 
@@ -535,19 +585,20 @@ product = filtered.loc[
     filtered["name"] == selected_for_analysis
 ].iloc[0]
 
-# Find the product's index in the original category dataset.
+# Find the product's stable index in the original dataset.
 product_index = products.index[
     products["name"] == selected_for_analysis
 ][0]
 
 analysis_rows = []
-weighted_total = 0.0
 available_weight = 0.0
+normalized_feature_values = {}
 
+# Normalize against the complete category dataset.
+# This keeps the analysis consistent with the main ranking.
 for feature_name, feature_config in feature_configurations.items():
     column = feature_config["column"]
     weight = weights.get(column, 0)
-    raw_value = product[column]
 
     normalized_values = normalize_feature(
         products[column],
@@ -556,11 +607,32 @@ for feature_name, feature_config in feature_configurations.items():
 
     normalized_value = normalized_values.loc[product_index]
 
-    contribution = None
+    normalized_feature_values[feature_name] = normalized_value
 
     if pd.notna(normalized_value) and weight > 0:
-        weighted_total += float(normalized_value) * weight
         available_weight += weight
+
+# Build the feature explanation table.
+for feature_name, feature_config in feature_configurations.items():
+    column = feature_config["column"]
+    weight = weights.get(column, 0)
+    raw_value = product[column]
+
+    normalized_value = normalized_feature_values[feature_name]
+
+    contribution = None
+
+    if (
+        pd.notna(normalized_value)
+        and weight > 0
+        and available_weight > 0
+    ):
+        contribution = round(
+            float(normalized_value)
+            * weight
+            / available_weight,
+            2,
+        )
 
     analysis_rows.append(
         {
@@ -575,34 +647,10 @@ for feature_name, feature_config in feature_configurations.items():
                 if pd.notna(normalized_value)
                 else None
             ),
-            "Weighted contribution": None,
+            "Weighted contribution": contribution,
         }
     )
 
-# Calculate each feature's contribution using the same
-# available-weight denominator as the main scoring function.
-for row in analysis_rows:
-    feature_name = row["Feature"]
-    feature_config = feature_configurations[feature_name]
-    column = feature_config["column"]
-    weight = weights.get(column, 0)
-
-    normalized_values = normalize_feature(
-        products[column],
-        feature_config["type"],
-    )
-
-    normalized_value = normalized_values.loc[product_index]
-
-    if (
-        pd.notna(normalized_value)
-        and weight > 0
-        and available_weight > 0
-    ):
-        row["Weighted contribution"] = round(
-            float(normalized_value) * weight / available_weight,
-            2,
-        )
 
 analysis = pd.DataFrame(analysis_rows)
 
@@ -619,10 +667,11 @@ st.dataframe(
 
 if available_weight > 0:
     st.caption(
-        "Weighted contributions show how much each feature adds "
-        "to the final match score. Missing values are excluded "
-        "from the calculation."
+        "Weighted contributions show each feature's contribution "
+        "to the final match score. Missing feature values are "
+        "excluded from the calculation. Values are rounded for display."
     )
+
 else:
     st.warning(
         "A match score cannot be explained because no usable "
@@ -630,57 +679,7 @@ else:
     )
 
 
-product = filtered.loc[
-    filtered["name"] == selected_for_analysis
-].iloc[0]
-
-# Get the selected product's stable index from the original dataset.
-product_index = products.index[
-    products["name"] == selected_for_analysis
-][0]
-
-analysis_rows = []
-
-for feature_name, feature_config in feature_configurations.items():
-    column = feature_config["column"]
-    raw_value = product[column]
-
-    normalized_values = normalize_feature(
-        products[column],
-        feature_config["type"],
-    )
-
-    # Use the original dataset index, not the sorted filtered index.
-    normalized_value = normalized_values.loc[product_index]
-
-    analysis_rows.append(
-        {
-            "Feature": feature_name,
-            "Recorded value": format_feature_value(
-                raw_value,
-                feature_config,
-            ),
-            "Your priority": weights[column],
-            "Relative score (/5)": (
-                round(float(normalized_value), 2)
-                if pd.notna(normalized_value)
-                else None
-            ),
-        }
-    )
-
-analysis = pd.DataFrame(analysis_rows)
-
-st.write(
-    f"**{selected_for_analysis}** — ₹{product['price_inr']:,.0f}"
-)
-
-st.dataframe(
-    analysis,
-    use_container_width=True,
-    hide_index=True,
-)
-
+# Identify strongest and weakest relative features.
 valid_analysis = analysis.dropna(
     subset=["Relative score (/5)"]
 )
@@ -688,7 +687,10 @@ valid_analysis = analysis.dropna(
 col1, col2 = st.columns(2)
 
 if valid_analysis.empty:
-    st.info("No feature values are available for relative fit analysis.")
+    st.info(
+        "No feature values are available for relative fit analysis."
+    )
+
 else:
     strongest = valid_analysis.loc[
         valid_analysis["Relative score (/5)"].idxmax()
@@ -714,7 +716,8 @@ else:
 
 st.caption(
     "Relative feature scores compare the selected product with "
-    "the category's illustrative sample data."
+    "the category's illustrative sample data. They are not "
+    "independent measures of real-world product quality."
 )
 
 
@@ -734,12 +737,14 @@ if selected_score >= average_score + 0.5:
         "This product scores notably above the average match score "
         "among the products currently shown."
     )
+
 elif selected_score >= average_score:
     fit_label = "Reasonable match"
     fit_reason = (
         "This product scores at or above the average match score "
         "among the products currently shown."
     )
+
 else:
     fit_label = "Consider alternatives"
     fit_reason = (
@@ -751,7 +756,35 @@ st.markdown(f"### {fit_label}")
 st.write(fit_reason)
 st.write(f"**Price:** ₹{selected_price:,.0f}")
 st.write(f"**Match score:** {selected_score:.2f}/5")
-st.write(f"**Budget remaining:** ₹{budget - selected_price:,.0f}")
+st.write(
+    f"**Budget remaining:** ₹{budget - selected_price:,.0f}"
+)
+
+# Explain a meaningful feature trade-off.
+if not valid_analysis.empty:
+    strongest_name = strongest["Feature"]
+    weakest_name = weakest["Feature"]
+
+    if strongest_name == weakest_name:
+        st.write(
+            f"**Feature insight:** {strongest_name} is the "
+            "available feature with the highest relative score."
+        )
+
+    else:
+        st.write(
+            f"**Strength:** {strongest_name} has the highest "
+            "relative score for this product."
+        )
+        st.write(
+            f"**Trade-off:** {weakest_name} has the lowest "
+            "relative score among its available features."
+        )
+
+st.caption(
+    "This verdict is based on the current shortlist, selected priorities, "
+    "and illustrative dataset. It is not a guarantee of product quality."
+)
 
 
 # ==================================================
@@ -773,7 +806,9 @@ selected_products = st.multiselect(
 if len(selected_products) >= 2:
     comparison = filtered[
         filtered["name"].isin(selected_products)
-    ][display_columns].rename(columns=rename_columns).copy()
+    ][display_columns].rename(
+        columns=rename_columns
+    ).copy()
 
     comparison["Match Score (/5)"] = (
         comparison["Match Score (/5)"].round(2)
@@ -784,6 +819,7 @@ if len(selected_products) >= 2:
         use_container_width=True,
         hide_index=True,
     )
+
 else:
     st.info("Select at least two products to compare.")
 
@@ -801,9 +837,11 @@ st.write(
 
 try:
     saved_names = database.get_shortlist(category)
+
 except Exception as error:
     st.error(f"Could not load your saved shortlist: {error}")
     st.stop()
+
 
 products_to_add = st.multiselect(
     "Choose products to save",
@@ -820,19 +858,31 @@ if st.button(
     key=f"save_shortlist_{category}",
 ):
     try:
-        database.save_shortlist(category, products_to_add)
+        database.save_shortlist(
+            category,
+            products_to_add,
+        )
+
         st.success(
             f"{category} shortlist saved to the local database."
         )
         st.rerun()
+
     except Exception as error:
-        st.error(f"Could not save the shortlist: {error}")
+        st.error(
+            f"Could not save the shortlist: {error}"
+        )
+
 
 try:
     saved_names = database.get_shortlist(category)
+
 except Exception as error:
-    st.error(f"Could not refresh your saved shortlist: {error}")
+    st.error(
+        f"Could not refresh your saved shortlist: {error}"
+    )
     st.stop()
+
 
 saved_products = scored_products[
     scored_products["name"].isin(saved_names)
@@ -843,6 +893,7 @@ if saved_products.empty:
         f"Your {category.lower()} shortlist is empty. "
         "Select products above and click Save."
     )
+
 else:
     saved_products = saved_products.sort_values(
         by=["match_score", "price_inr"],
@@ -850,7 +901,9 @@ else:
         na_position="last",
     )
 
-    saved_display = saved_products[display_columns].rename(
+    saved_display = saved_products[
+        display_columns
+    ].rename(
         columns=rename_columns
     ).copy()
 
@@ -871,7 +924,9 @@ else:
     st.download_button(
         label=f"Download {category} Shortlist (CSV)",
         data=csv_data,
-        file_name=f"worthit_{category.lower()}_shortlist.csv",
+        file_name=(
+            f"worthit_{category.lower()}_shortlist.csv"
+        ),
         mime="text/csv",
         key=f"download_shortlist_{category}",
     )
@@ -884,8 +939,11 @@ else:
             database.clear_shortlist(category)
             st.success(f"{category} shortlist cleared.")
             st.rerun()
+
         except Exception as error:
-            st.error(f"Could not clear the shortlist: {error}")
+            st.error(
+                f"Could not clear the shortlist: {error}"
+            )
 
 
 # ==================================================
