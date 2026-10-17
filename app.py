@@ -521,6 +521,7 @@ else:
 # 11. PRODUCT FIT ANALYSIS
 # ==================================================
 
+
 st.header("6. Product Fit Analysis")
 
 selected_for_analysis = st.selectbox(
@@ -529,6 +530,105 @@ selected_for_analysis = st.selectbox(
     index=0,
     key=f"analysis_{category}",
 )
+
+product = filtered.loc[
+    filtered["name"] == selected_for_analysis
+].iloc[0]
+
+# Find the product's index in the original category dataset.
+product_index = products.index[
+    products["name"] == selected_for_analysis
+][0]
+
+analysis_rows = []
+weighted_total = 0.0
+available_weight = 0.0
+
+for feature_name, feature_config in feature_configurations.items():
+    column = feature_config["column"]
+    weight = weights.get(column, 0)
+    raw_value = product[column]
+
+    normalized_values = normalize_feature(
+        products[column],
+        feature_config["type"],
+    )
+
+    normalized_value = normalized_values.loc[product_index]
+
+    contribution = None
+
+    if pd.notna(normalized_value) and weight > 0:
+        weighted_total += float(normalized_value) * weight
+        available_weight += weight
+
+    analysis_rows.append(
+        {
+            "Feature": feature_name,
+            "Recorded value": format_feature_value(
+                raw_value,
+                feature_config,
+            ),
+            "Your priority": weight,
+            "Relative score (/5)": (
+                round(float(normalized_value), 2)
+                if pd.notna(normalized_value)
+                else None
+            ),
+            "Weighted contribution": None,
+        }
+    )
+
+# Calculate each feature's contribution using the same
+# available-weight denominator as the main scoring function.
+for row in analysis_rows:
+    feature_name = row["Feature"]
+    feature_config = feature_configurations[feature_name]
+    column = feature_config["column"]
+    weight = weights.get(column, 0)
+
+    normalized_values = normalize_feature(
+        products[column],
+        feature_config["type"],
+    )
+
+    normalized_value = normalized_values.loc[product_index]
+
+    if (
+        pd.notna(normalized_value)
+        and weight > 0
+        and available_weight > 0
+    ):
+        row["Weighted contribution"] = round(
+            float(normalized_value) * weight / available_weight,
+            2,
+        )
+
+analysis = pd.DataFrame(analysis_rows)
+
+st.write(
+    f"**{selected_for_analysis}** — "
+    f"₹{product['price_inr']:,.0f}"
+)
+
+st.dataframe(
+    analysis,
+    use_container_width=True,
+    hide_index=True,
+)
+
+if available_weight > 0:
+    st.caption(
+        "Weighted contributions show how much each feature adds "
+        "to the final match score. Missing values are excluded "
+        "from the calculation."
+    )
+else:
+    st.warning(
+        "A match score cannot be explained because no usable "
+        "feature values have a positive priority."
+    )
+
 
 product = filtered.loc[
     filtered["name"] == selected_for_analysis
