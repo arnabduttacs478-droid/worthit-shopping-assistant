@@ -1,4 +1,5 @@
 # WorthIt? 🛍️
+### Demo🌐: https://worthit-shopping-assistant.onrender.com/
 ### Spend smarter. Buy what actually fits your needs.
 
 **WorthIt?** is an open-source, AI-powered shopping decision assistant designed to help users make more informed purchasing decisions.
