@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import database
 from app_logic import normalize_feature, calculate_scores
+from ai_assistant import explain_recommendations
 
 # ==================================================
 # 1. PAGE CONFIGURATION
@@ -408,6 +409,60 @@ filtered = filtered.sort_values(
     by=["match_score", "price_inr"],
     ascending=[False, True],
 ).reset_index(drop=True)
+
+
+# ==================================================
+# 8. AI SHOPPING ASSISTANT
+# ==================================================
+
+st.header("Ask WorthIt? 🤖")
+
+st.write(
+    "Describe what you need in everyday language. "
+    "The AI will explain how your current results fit "
+    "your requirements and highlight important trade-offs."
+)
+
+shopping_requirements = st.text_area(
+    "What matters most to you?",
+    placeholder=(
+        "For example: I need earbuds for online classes "
+        "under ₹1,500. Microphone quality and comfort "
+        "matter more to me than bass."
+    ),
+    key=f"ai_requirements_{category}",
+)
+
+if st.button(
+    "Get AI Shopping Guidance",
+    key=f"ai_guidance_{category}",
+    disabled=not shopping_requirements.strip(),
+):
+    with st.spinner("Analysing your requirements and products..."):
+        try:
+            priorities = {
+                feature_name: weights[feature_config["column"]]
+                for feature_name, feature_config
+                in feature_configurations.items()
+            }
+
+            ai_answer = explain_recommendations(
+                requirements=shopping_requirements.strip(),
+                products=filtered,
+                priorities=priorities,
+            )
+
+            st.markdown("### Your AI Shopping Guidance")
+            st.markdown(ai_answer)
+
+        except Exception as error:
+            st.error(
+                "The AI assistant could not generate a response. "
+                "Check your Groq API key, internet connection, "
+                "and model availability, then try again."
+            )
+            st.caption(f"Technical details: {error}")
+
 
 
 # ==================================================

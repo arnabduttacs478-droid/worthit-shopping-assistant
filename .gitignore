@@ -224,3 +224,5 @@ worthit.db
 worthit.db-journal
 worthit.db-wal
 worthit.db-shm
+
+.streamlit/secrets.toml
